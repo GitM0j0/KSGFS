@@ -10,19 +10,19 @@ import numpy as np
 #from numpy.random import RandomState
 
 #import sgld
-import sgld_alt
+from sgld import model, optim
 
 ### Utils
 
-def log_gaussian(x, precision):
-    # Normal distribution N(0, 1/precision)
-    return -0.5 * (torch.log(torch.tensor(2.) * np.pi / precision) + precision * x.pow(2))
-
-def gaussian_prior(x, precision):
-    res = 0
-    for p in x:
-        res += torch.sum(log_gaussian(p, precision))
-    return res
+#def log_gaussian(x, precision):
+#    # Normal distribution N(0, 1/precision)
+#    return -0.5 * (torch.log(torch.tensor(2.) * np.pi / precision) + precision * x.pow(2))
+#
+#def gaussian_prior(x, precision):
+#    res = 0
+#    for p in x:
+#        res += torch.sum(log_gaussian(p, precision))
+#    return res
 
 
 ###
@@ -54,11 +54,11 @@ test_data = torchvision.datasets.MNIST(root=os.environ.get("DATASETS_PATH", "~/d
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=1000)
 
 kind = "classifier"
-network = sgld_alt.model.shallow_network()
+network = model.shallow_network()
 criterion = nn.CrossEntropyLoss(size_average=True)
 
 #optim = sgld_alt.optim.sgld(network, lr, weight_decay, lr_decayEpoch, batch_size, dataset_size)
-optim = sgld_alt.optim.sgld(network, a, b, gamma, weight_decay, batch_size, dataset_size)
+optim = optim.sgld(network, a, b, gamma, weight_decay, batch_size, dataset_size)
 
 for epoch in range(10):
     running_loss = 0

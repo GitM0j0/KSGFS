@@ -24,12 +24,12 @@ class sgld(object):
     def step(self, epoch=0):
         for l in self.linear_layers:
             weight_grad = l.weight.grad
-            weight_grad.add_(self.lambda_, l.weight.data)
+            grad_logPost = (-float(self.N) / self.n * weight_grad).add_(self.lambda_, l.weight.data)
             # Exponential LR decay
             #learning_rate = self.lr_init * (2**(-epoch // self.lr_decayEpoch))
             learning_rate = self.a * (self.b + epoch) ** (-self.gamma)
 
-            size=weight_grad.size()
+            size = weight_grad.size()
 #            noise = Normal(
 #                torch.zeros(size),
 #                torch.ones(size) * np.sqrt(learning_rate)
@@ -44,5 +44,5 @@ class sgld(object):
             # with eta_t ~ N(0, eta_t)
 
             #update = learning_rate * 0.5 * self.N / self.n * weight_grad + noise.sample()
-            update = learning_rate * 0.5 * weight_grad + noise.sample()
+            update = learning_rate * 0.5 * grad_logPost + noise.sample()
             l.weight.data.add_(-update)

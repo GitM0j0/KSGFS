@@ -12,6 +12,8 @@ import numpy as np
 #import sgld
 from sgld import model, optim
 
+import mnist
+
 ### Utils
 
 #def log_gaussian(x, precision):
@@ -45,13 +47,7 @@ gamma = 0.55
 
 #precision = 1.
 
-train_data = torchvision.datasets.MNIST(root=os.environ.get("DATASETS_PATH", "~/datasets"), train=True,
-                                         download=True, transform=transforms.ToTensor())
-train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, num_workers=5)
-
-test_data = torchvision.datasets.MNIST(root=os.environ.get("DATASETS_PATH", "~/datasets"), train=False,
-                                        download=True, transform=transforms.ToTensor())
-test_loader = torch.utils.data.DataLoader(test_data, batch_size=1000)
+train_loader, test_loader = mnist.get_mnist()
 
 kind = "classifier"
 network = model.shallow_network()

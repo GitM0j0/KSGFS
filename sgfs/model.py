@@ -14,11 +14,11 @@ class shallow_network(nn.Module):
     def __init__(self):
         super(shallow_network, self).__init__()
         self.model = nn.Sequential(
-                      nn.Linear(784, 400),
+                      nn.Linear(784, 400, bias=False),
                       nn.ReLU(),
-                      nn.Linear(400, 400),
+                      nn.Linear(400, 400, bias=False),
                       nn.ReLU(),
-                      nn.Linear(400,10)
+                      nn.Linear(400,10, bias=False)
                     ).to(device)
 
     def forward(self, x):

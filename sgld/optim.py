@@ -30,11 +30,6 @@ class sgld(object):
             learning_rate = self.a * (self.b + epoch) ** (-self.gamma)
 
             size = weight_grad.size()
-#            noise = Normal(
-#                torch.zeros(size),
-#                torch.ones(size) * np.sqrt(learning_rate)
-#            )
-
             noise = Normal(
                 torch.zeros(size),
                 torch.ones(size) * np.sqrt(learning_rate)

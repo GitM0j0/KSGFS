@@ -9,7 +9,7 @@ import numpy as np
 
 
 class sgfs(object):
-    def __init__(self,net, B, a, b, nu, lambda_, batch_size, dataset_size):
+    def __init__(self,net, B, a, b, nu, tau, batch_size, dataset_size):
         self.net = net
         self.n = batch_size
         self.N = dataset_size
@@ -21,41 +21,44 @@ class sgfs(object):
         self.B = B
         #self.lr_init = lr
         #self.lr_decayEpoch = lr_decayEpoch
-        self.lambda_ = lambda_
-        self.emp_fisher = dict()
+        self.tau = tau
+        self.I_hat = dict()
+
+        ### DIMENSION not correctS
 
     def step(self, epoch=0):
         for l in self.linear_layers:
             if epoch == 0:
-                self.emp_fisher[l] = torch.zeros(l.weight.data.size(1),l.weight.data.size(1))
+                self.I_hat[l] = torch.zeros(l.weight.data.size(1),l.weight.data.size(1))
 
             weight_grad = l.weight.grad
             mean_weight_grad = torch.mean(weight_grad, 0)
             diff_grad = weight_grad - mean_weight_grad
             cov_scores = 1 / (self.n - 1) * diff_grad.transpose(1,0).mm(diff_grad)
 
-            #weight_grad.add_(self.lambda_, l.weight.data)
+            #weight_grad.add_(self.tau, l.weight.data)
             # Exponential LR decay
             #learning_rate = self.lr_init * (2**(-epoch // self.lr_decayEpoch))
             learning_rate = self.a * (self.b + epoch) ** (-self.nu)
 
 
-            self.emp_fisher[l] = (1 - 1. / (epoch+1)) * self.emp_fisher[l] + 1. / (epoch+1) * cov_scores
+            self.I_hat[l] = (1 - 1. / (epoch+1)) * self.I_hat[l] + 1. / (epoch+1) * cov_scores
 
-            mat = self.gamma * self.emp_fisher[l] + (4. / learning_rate) * self.B
-            #l, u = torch.symeig(mat)
-            #mat_inv = (u * ((l + ) ** (-1))).mm(u.transpose(1,0))
-            mat_inv = torch.inverse(mat)
+            mat = self.gamma * self.I_hat[l] + (4. / learning_rate) * self.B
+            #Expensive inversion
+            mat_inv = mat.inverse()
 
-            size=weight_grad.size()
+            # B needs to be changed in training file
+            B_ch = torch.potrf(B)
+            noise = (2. * learning_rate ** (-0.5) * B_ch).mm(torch.randn_like(weight_grad))
+            print(noise.size())
 
-            noise = Normal(
-                torch.zeros(size),
-                torch.ones(size) * np.sqrt((4. /learning_rate) * self.B)
-                )
+
+            #noise = torch.randn_like(weight_grad) * (4. / (learning_rate) * self.B) ** 0.5
+
             # Mini-batch updates
             # theta_(t+1) = theta_t + 2 * (gamma * I_hat + N * grad_avg(theta_t; X_t))^⁻1 * ( grad(log p(theta_t)) + N * grad_avg(theta_t) + eta_t)
             # with eta_t ~ N(0, 4 * B / eta_t)
 
-            update = mat_inv.mm(2. * (self.N * mean_weight_grad).add_(self.lambda_, l.weight.data) + noise.sample())
+            update = mat_inv.mm(2. * (self.N * mean_weight_grad).add_(self.tau, l.weight.data).add_(noise))
             l.weight.data.add_(update)

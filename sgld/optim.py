@@ -32,7 +32,7 @@ class sgld(object):
             # According to Ahn et al. (2012) without averaging (original paper) - NOT WORKING!!!
             #grad_logPost = (float(self.N) / self.n * weight_grad).add_(self.tau, l.weight.data)
             #learning_rate = self.a * (self.b + epoch) ** (-self.gamma)
-            #noise = torch.randn_like(weight_grad) * (learning_rate) ** (-0.5)
+            #noise = torch.randn_like(weight_grad) * (learning_rate) ** (0.5)
             #update = (learning_rate * 0.5 * grad_logPost).add_(noise)
 
             # According to Marceau-Caron/Ollivier (2017) with averaging - WORKS!
@@ -44,7 +44,7 @@ class sgld(object):
             # According to Li et al.(2016) - Modification of required parameters!
             #learning_rate = self.lr_init * (2**(-epoch // self.lr_decayEpoch))
 
-            noise = torch.randn_like(weight_grad) * (2. * learning_rate / self.N)
+            noise = torch.randn_like(weight_grad) * (2. * learning_rate / self.N) ** 0.5
 
 
 

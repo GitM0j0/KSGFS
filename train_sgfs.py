@@ -32,7 +32,6 @@ b = 1e04
 gamma = 0.55
 
 ### Change B
-B = 1.
 
 #precision = 1.
 
@@ -42,10 +41,10 @@ train_size = len(train_loader.dataset)
 test_size = len(test_loader.dataset)
 
 network = model.shallow_network()
-criterion = nn.CrossEntropyLoss(size_average=False)
+criterion = nn.CrossEntropyLoss(size_average=True)
 
 #optim = sgld_alt.optim.sgld(network, lr, weight_decay, lr_decayEpoch, batch_size, dataset_size)
-optim = optim.sgfs(network, B, a, b, gamma, weight_decay, batch_size, train_size)
+optim = optim.sgfs(network, a, b, gamma, weight_decay, batch_size, train_size)
 
 for epoch in range(10):
     running_loss = 0

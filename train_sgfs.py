@@ -57,7 +57,7 @@ for epoch in range(10):
         loss = criterion(output, y)
         loss.backward()
         optim.step(epoch)
-
+        #TO DO: update
         running_loss += loss * batch_size / train_size
         prediction = output.data.max(1)[1]
         accuracy = torch.sum(prediction.eq(y)).float()/batch_size

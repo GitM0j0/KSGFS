@@ -10,7 +10,8 @@ import numpy as np
 #from numpy.random import RandomState
 
 #import sgld
-from sgfs import model, optim
+from sgfs import optim
+import model
 
 import mnist
 

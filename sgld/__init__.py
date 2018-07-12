@@ -1,1 +1,1 @@
-from . import optim, model
+from . import optim

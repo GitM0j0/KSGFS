@@ -69,8 +69,6 @@ for epoch in range(10):
         for x, y in iter(test_loader):
             x = x.view(x.size(0), -1)
             output = network(x)
-            if kind == "classifier":
-                test_metric += 100 * (output.argmax(1) == y).float().sum() / test_size
-            else:
-                raise ValueError("Unreachable")
+            test_metric += 100 * (output.argmax(1) == y).float().sum() / test_size
+            
         print("\ttest: ", test_metric)

@@ -21,15 +21,13 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
-batch_size = 2000
+batch_size = 300
 #lr = 1e-5
 #lr_decayEpoch = 20
 num_workers = 5
 
 weight_decay = 0.001
-a =  1.
-b = 1e03
-gamma = 1.
+epsilon =  1.
 
 ### Change B
 
@@ -45,9 +43,9 @@ criterion = nn.CrossEntropyLoss(size_average=False)
 
 #optim = sgld_alt.optim.sgld(network, lr, weight_decay, lr_decayEpoch, batch_size, dataset_size)
 #optim = optim.sgfs(network, a, b, gamma, weight_decay, batch_size, train_size)
-optim = optim.sgfs(network, a, b, gamma, weight_decay, batch_size, train_size)
+optim = optim.sgfs(network, epsilon, weight_decay, batch_size, train_size)
 
-for epoch in range(100):
+for epoch in range(20):
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)
@@ -56,7 +54,7 @@ for epoch in range(100):
         output = network(x)
         loss = criterion(output, y)
         loss.backward()
-        optim.step(epoch)
+        optim.step()
         #TO DO: update
         running_loss += loss * batch_size / train_size
         prediction = output.data.max(1)[1]

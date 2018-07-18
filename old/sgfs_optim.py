@@ -31,8 +31,7 @@ class sgfs(object):
 
             weight_grad = l.weight.grad
 
-            #mean_weight_grad = torch.mean(weight_grad,0).view(1,-1) # correct dimension
-            mean_weight_grad = l.weight.grad / self.n
+            mean_weight_grad = torch.mean(weight_grad,0).view(1,-1) # correct dimension
             diff_grad = weight_grad - mean_weight_grad
             cov_scores = 1 / (self.n - 1) * diff_grad.mm(diff_grad.transpose(1,0))
             #cov_scores = 1 / (self.n - 1) * diff_grad.mm(diff_grad.transpose(1,0))
@@ -46,21 +45,21 @@ class sgfs(object):
             self.I_hat[l] = (1 - 1. / (epoch+1)) * self.I_hat[l] + 1. / (epoch+1) * cov_scores
 
             # According to Ahn et al. (2012): B \propto N*I_hat
-            # if epoch < 5:
-            #     B = torch.eye(weight_grad.size(0))
-            # else:
-            #     B = self.gamma * self.N * self.I_hat[l]
+            if epoch < 5:
+                B = torch.eye(weight_grad.size(0))
+            else:
+                B = self.gamma * self.N * self.I_hat[l]
             #B = self.gamma * self.N * self.I_hat[l]
-            B = torch.eye(weight_grad.size(0))
+            #B = torch.eye(weight_grad.size(0))
 
             mat = self.gamma *self.N * self.I_hat[l] + (4. / learning_rate) * B
             mat_inv = mat.inverse()
 
             # B needs to be changed in training file
             B_ch = torch.potrf(B)
-            noise = (2. * learning_rate ** (-0.5) * B_ch).mm(torch.randn_like(weight_grad))
+            noise = (2. * learning_rate ** (-0.5) * B_ch).mm(torch.randn_like(weight_grad)) / self.N
             #prior = self.tau / self.N * l.weight.data
-            prior = self.tau * l.weight.data
+            prior = self.tau / self.N * l.weight.data
 
             #noise = torch.randn_like(weight_grad) * (4. / (learning_rate) * self.B) ** 0.5
 
@@ -72,4 +71,4 @@ class sgfs(object):
             #update = 2. * mat_inv.mm(noise.add_(2 * prior).add_(self.N, mean_weight_grad))
 
             #update = 2. * mat_inv.mm(noise.transpose(1,0).add_(self.tau, l.weight.data).add_(self.N, mean_weight_grad))
-            l.weight.data.add_(-update)
+            l.weight.data.add_(update)

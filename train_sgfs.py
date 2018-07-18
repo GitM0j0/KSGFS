@@ -7,9 +7,8 @@ from torch import nn
 from torchvision import transforms
 import torch.nn.functional as F
 import numpy as np
-#from numpy.random import RandomState
 
-#import sgld
+
 from sgfs import optim
 import model
 
@@ -42,12 +41,13 @@ train_size = len(train_loader.dataset)
 test_size = len(test_loader.dataset)
 
 network = model.shallow_network()
-criterion = nn.CrossEntropyLoss(size_average=True)
+criterion = nn.CrossEntropyLoss(size_average=False)
 
 #optim = sgld_alt.optim.sgld(network, lr, weight_decay, lr_decayEpoch, batch_size, dataset_size)
+#optim = optim.sgfs(network, a, b, gamma, weight_decay, batch_size, train_size)
 optim = optim.sgfs(network, a, b, gamma, weight_decay, batch_size, train_size)
 
-for epoch in range(10):
+for epoch in range(100):
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)

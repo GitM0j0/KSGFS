@@ -29,7 +29,7 @@ class sgfs(object):
             if epoch == 0:
                 self.I_hat[l] = torch.zeros(l.weight.data.size(0),l.weight.data.size(0))
 
-            weight_grad = l.weight.grad / self.N
+            weight_grad = l.weight.grad
 
             mean_weight_grad = torch.mean(weight_grad,0).view(1,-1) # correct dimension
             diff_grad = weight_grad - mean_weight_grad
@@ -45,11 +45,12 @@ class sgfs(object):
             self.I_hat[l] = (1 - 1. / (epoch+1)) * self.I_hat[l] + 1. / (epoch+1) * cov_scores
 
             # According to Ahn et al. (2012): B \propto N*I_hat
+            # if epoch < 5:
+            #     B = torch.eye(weight_grad.size(0))
+            # else:
+            #     B = self.gamma * self.N * self.I_hat[l]
             #B = self.gamma * self.N * self.I_hat[l]
-            if epoch < 5:
-                B = torch.eye(weight_grad.size(0))
-            else:
-                B = self.gamma * self.N * self.I_hat[l]
+            B = torch.eye(weight_grad.size(0))
 
             mat = self.gamma *self.N * self.I_hat[l] + (4. / learning_rate) * B
             mat_inv = mat.inverse()
@@ -65,7 +66,7 @@ class sgfs(object):
             # theta_(t+1) = theta_t + 2 * (gamma * I_hat + N * grad_avg(theta_t; X_t))^⁻1 * ( grad(log p(theta_t)) + N * grad_avg(theta_t) + eta_t)
             # with eta_t ~ N(0, 4 * B / eta_t)
             #update = mat_inv.mm(2. * (self.N * mean_weight_grad).add_(self.tau, l.weight.data).add_(noise))
-            update = 2. * mat_inv.mm(noise.add_(prior).add_(self.N, mean_weight_grad))
+            update = 2. * (mat_inv / self.N).mm(noise.add_(prior).add_(self.N, mean_weight_grad))
 
             #update = 2. * mat_inv.mm(noise.transpose(1,0).add_(self.tau, l.weight.data).add_(self.N, mean_weight_grad))
             l.weight.data.add_(update)

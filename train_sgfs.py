@@ -22,15 +22,15 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
-batch_size = 500
+batch_size = 2000
 #lr = 1e-5
 #lr_decayEpoch = 20
 num_workers = 5
 
 weight_decay = 0.001
 a =  1.
-b = 1e04
-gamma = 0.55
+b = 1e03
+gamma = 1.
 
 ### Change B
 
@@ -70,5 +70,6 @@ for epoch in range(10):
             x = x.view(x.size(0), -1)
             output = network(x)
             test_metric += 100 * (output.argmax(1) == y).float().sum() / test_size
-            
+
+
         print("\ttest: ", test_metric)

@@ -17,7 +17,6 @@ import model
 import mnist
 
 
-
 if torch.cuda.is_available():
     device = torch.device("cuda")
 else:
@@ -26,13 +25,16 @@ else:
 
 #lr = 1e-5
 #lr_decayEpoch = 20
-batch_size = 2000
+batch_size = 500
 num_workers = 5
 
-weight_decay = 0.001
+lambda_ = 0.01
 a =  1.
-b = 1e03
-gamma = 1.
+b = 100.
+gamma = 0.55
+
+def l2(params):
+    return sum(torch.sum(p ** 2) for p in params)
 
 
 train_loader, test_loader = mnist.get_mnist(batch_size, num_workers)
@@ -40,10 +42,10 @@ dataset_size = len(train_loader.dataset)
 
 
 network = model.shallow_network()
-criterion = nn.CrossEntropyLoss(size_average=False)
+criterion = nn.CrossEntropyLoss(size_average=True)
 
-#optim = sgld_alt.optim.sgld(network, lr, weight_decay, lr_decayEpoch, batch_size, dataset_size)
-optim = optim.sgld(network, a, b, gamma, weight_decay, batch_size, dataset_size)
+#optim = sgld_alt.optim.sgld(network, lr, lambda_, lr_decayEpoch, batch_size, dataset_size)
+optim = optim.sgld(network, a, b, gamma, lambda_, batch_size, dataset_size)
 
 for epoch in range(5):
     running_loss = 0
@@ -52,7 +54,7 @@ for epoch in range(5):
 
         network.zero_grad()
         output = network(x)
-        loss = criterion(output, y)
+        loss =batch_size /dataset_size * criterion(output, y)
         loss.backward()
         optim.step()
 

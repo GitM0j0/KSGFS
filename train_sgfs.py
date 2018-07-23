@@ -9,7 +9,6 @@ import model_sgfs
 
 import mnist
 
-from utils import helper
 
 
 
@@ -38,7 +37,7 @@ train_size = len(train_loader.dataset)
 test_size = len(test_loader.dataset)
 
 #network = model.shallow_network()
-network = model.mlp([784,400,400,10])
+network = model_sgfs.mlp([784,400,400,10])
 criterion = F.binary_cross_entropy_with_logits
 
 

@@ -78,21 +78,24 @@ class sgfs(object):
             #self.I_hat[l] = (1 - 1. / self.t) * self.I_hat[l] + (1. / self.t) * cov_scores
 
             # According to Ahn et al. (2012): B \propto N*I_hat
-            # if self.t < 50:
-            #     B = torch.eye(self.I_hat[l].size(0))
-            # else:
-            #     B = self.N* self.I_hat[l]
-            #B = torch.eye(weight_grad.size(0))
+            if self.t < 50:
+                B = torch.eye(self.I_hat[l].size(0))
+            else:
+                B = self.N* self.I_hat[l]
+                #B = self.I_hat[l]
+            #B = torch.eye(self.grad_mean[l].size(0))
             #print(torch.prod(torch.diag(B)))
-            B = self.N * self.I_hat[l]
+            #B = self.N * self.I_hat[l]
             #print(torch.diag(B))
 
             mat = self.gamma * self.N * self.I_hat[l]  + (4. / self.epsilon * B)
+            #mat = self.gamma * self.I_hat[l]  + (4. / self.epsilon * B)
             mat_inv = mat.inverse()
 
             # B needs to be changed in training file
             B_ch = torch.potrf(B)
             noise = (2. * self.epsilon ** (-0.5) * B_ch).mm(torch.randn_like(self.grad_mean[l]))
+            # noise = (2. * (self.epsilon * self.N) ** (-0.5) * B_ch).mm(torch.randn_like(self.grad_mean[l]))
             #prior = self.lambda_ / self.N * l.weight.data
 
 
@@ -101,10 +104,9 @@ class sgfs(object):
             # Mini-batch updates
             # theta_(t+1) = theta_t + 2 * (gamma * I_hat + N * grad_avg(theta_t; X_t))^⁻1 * ( grad(log p(theta_t)) + N * grad_avg(theta_t) + eta_t)
             # with eta_t ~ N(0, 4 * B / eta_t)
-            #update = mat_inv.mm(2. * (self.N * mean_weight_grad).add_(self.lambda_, l.weight.data).add_(noise))
-            update = 2. * mat_inv.mm(noise.add_(self.lambda_,l.weight.data).add_(self.N, self.grad_mean[l]))
+            update = mat_inv.mm(2. * (self.N * mean_weight_grad).add_(self.lambda_, l.weight.data).add_(noise))
+            #update = 2. * mat_inv.mm(noise.add_(self.lambda_ / self.N, l.weight.data).add_(self.grad_mean[l]))
             #update = 2. * mat_inv.mm(noise.add_(2 * prior).add_(self.N, mean_weight_grad))
 
-            #update = 2. * mat_inv.mm(noise.transpose(1,0).add_(self.lambda_, l.weight.data).add_(self.N, mean_weight_grad))
             l.weight.data.add_(-update)
         self.t += 1

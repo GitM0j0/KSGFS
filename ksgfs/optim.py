@@ -14,29 +14,6 @@ class BackpropMode(Enum):
     CURVATURE = 1
 
 
-#def linear_forward_hook(kfac, mod, inp, output):
-#    def backward_hook(grad):
-#        if kfac.mode == BackpropMode.STANDARD:
-#            return
-
-#        fixed_input = inp
-#        if mod.bias is not None:
-#            fixed_input = torch.cat((fixed_input, fixed_input.new(fixed_input.size(0), 1)))
-#        input_cov = fixed_input.transpose(1, 0).mm(fixed_input)
-#        preact_fisher = grad.transpose(1, 0).mm(grad)
-
-#        def update_mat(d, mat):
-#            if mod not in d or (kfac.v == 0 and kfac.eta == 1):
-#                d[mod] = mat
-#            else:
-#                d[mod] = kfac.v * d[mod] + kfac.eta * mat
-
-#        update_mat(kfac.input_covariances, input_cov)
-#        update_mat(kfac.preactivation_fishers, preact_fisher)
-
-#    output.register_hook(backward_hook)
-
-
 class KSGFS(object):
 
     def __init__(self, net, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-3, epsilon=2., l2=1e-3, stochastic=False, invert_np=True,
@@ -74,6 +51,8 @@ class KSGFS(object):
         self.preactivations = dict()
         self.preactivation_fisher_inverses = dict()
         self.input_covariance_inverses = dict()
+
+        self.t = 1.
 
         self._add_hooks_to_net()
 
@@ -150,21 +129,12 @@ class KSGFS(object):
                 bias_grad = l.bias.grad
                 weight_grad = torch.cat((weight_grad, bias_grad.unsqueeze(1)), 1)
 
-            # q = self.input_covariances[l]
-            # f = self.preactivation_fishers[l]
-
-            # reg_q = self.lambda_ * torch.eye(q.size(0))
-            # mm1 = torch.gesv(weight_grad.transpose(1, 0), q + reg_q)[0].transpose(1, 0)
-
-            # reg_f = self.lambda_ * torch.eye(f.size(0))
-            # update = self.lr * torch.gesv(mm1, f + reg_f)[0]
-
             noise = torch.randn_like(weight_grad)
 
-            # Matrix sqrt!!!
-            q_sqrt = torch.sqrt(self.input_covariances[l])
-            f_sqrt = torch.sqrt(self.preactivation_fishers[l])
-            noise_scaled = f_sqrt.mm(noise).mm(q_sqrt)
+            # Matrix sqrt!!! Using cholesky factors fails!!!! #Possibly numerical issue
+            q_ch = torch.potrf(self.input_covariances[l].add_(1e-5 * 1. ** -(self.t // 20),torch.eye(self.input_covariances[l].size(1))))
+            f_ch = torch.potrf(self.preactivation_fishers[l].add_(1e-5 * 1. ** -(self.t // 20),torch.eye(self.preactivation_fishers[l].size(0))))
+            noise_scaled = f_ch.mm(noise).mm(q_ch)
 
             weight_grad.add_(self.lambda_ / self.N, l.weight.data).add_(self.noise_factor, noise_scaled)
 
@@ -179,6 +149,7 @@ class KSGFS(object):
             # else:
             #     l.weight.data.add_(-self.learning_rate, update)
             l.weight.data.add_(-0.1, update)
+        self.t += 1
 
     def _add_hooks_to_net(self):
         def register_hook(m):

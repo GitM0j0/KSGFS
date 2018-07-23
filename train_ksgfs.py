@@ -42,7 +42,7 @@ criterion = nn.CrossEntropyLoss(size_average=True)
 optim = ksgfs.optim.KSGFS(network, criterion, batch_size, dataset_size)
 
 
-for epoch in range(5):
+for epoch in range(20):
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)

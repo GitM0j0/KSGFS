@@ -161,6 +161,7 @@ class KSGFS(object):
 
             noise = torch.randn_like(weight_grad)
 
+            # Matrix sqrt!!!
             q_sqrt = torch.sqrt(self.input_covariances[l])
             f_sqrt = torch.sqrt(self.preactivation_fishers[l])
             noise_scaled = f_sqrt.mm(noise).mm(q_sqrt)

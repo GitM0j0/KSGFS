@@ -132,8 +132,9 @@ class KSGFS(object):
             noise = torch.randn_like(weight_grad)
 
             # Matrix sqrt!!! Using cholesky factors fails!!!! #Possibly numerical issue
-            q_ch = torch.potrf(self.input_covariances[l].add_(1e-5 * 1. ** -(self.t // 20),torch.eye(self.input_covariances[l].size(1))))
-            f_ch = torch.potrf(self.preactivation_fishers[l].add_(1e-5 * 1. ** -(self.t // 20),torch.eye(self.preactivation_fishers[l].size(0))))
+            eps = 1e-5 * 1. ** -(self.t // 20)
+            q_ch = torch.potrf(self.input_covariances[l].add_(eps, torch.eye(self.input_covariances[l].size(1))))
+            f_ch = torch.potrf(self.preactivation_fishers[l].add_(eps, torch.eye(self.preactivation_fishers[l].size(0))))
             noise_scaled = f_ch.mm(noise).mm(q_ch)
 
             weight_grad.add_(self.lambda_ / self.N, l.weight.data).add_(self.noise_factor, noise_scaled)

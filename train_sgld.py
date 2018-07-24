@@ -38,7 +38,7 @@ def l2(params):
 
 
 train_loader, test_loader = mnist.get_mnist(batch_size, num_workers)
-dataset_size = len(train_loader.dataset)
+dataset_size = 60000
 
 
 network = model.shallow_network()
@@ -54,7 +54,7 @@ for epoch in range(5):
 
         network.zero_grad()
         output = network(x)
-        loss =batch_size /dataset_size * criterion(output, y)
+        loss = criterion(output, y)
         loss.backward()
         optim.step()
 
@@ -70,7 +70,7 @@ for epoch in range(5):
         for x, y in iter(test_loader):
             x = x.view(x.size(0), -1)
             output = network(x)
-            test_metric += 100 * (output.argmax(1) == y).float().sum() / len(test_loader.dataset)
+            test_metric += 100 * (output.argmax(1) == y).float().sum() / 10000
             prediction = output.data.max(1)[1]
             accuracy = torch.sum(prediction.eq(y)).float()/1000
 

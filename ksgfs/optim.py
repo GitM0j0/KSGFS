@@ -103,7 +103,7 @@ class KSGFS(object):
                 l, u = map(mat.new, la.eigh(mat.numpy()))
             else:
                 l, u = torch.symeig(mat)
-            inv = (u * ((l + self.l2) ** -1)).mm(u.transpose(1, 0))
+            inv = (u * ((l + self.lambda_) ** -1)).mm(u.transpose(1, 0))
             inv_dict[mod] = inv
 
     def _linear_forward_hook(self, mod, inputs, output):
@@ -141,15 +141,15 @@ class KSGFS(object):
 
             q_inv = self.input_covariance_inverses[l]
             f_inv = self.preactivation_fisher_inverses[l]
-            update = f_inv.mm(weight_grad).mm(q_inv)
-            #print(update)
+            update = self.learning_rate * f_inv.mm(weight_grad).mm(q_inv)
+            #update = f_inv.mm(weight_grad).mm(q_inv)
 
-            # if l.bias is not None:
-            #     l.weight.data.add_(-self.learning_rate, update[:, :-1])
-            #     l.bias.data.add_(-self.learning_rate, update[:, -1])
-            # else:
-            #     l.weight.data.add_(-self.learning_rate, update)
-            l.weight.data.add_(-0.1, update)
+#             if l.bias is not None:
+#                 l.weight.data.add_(-update[:, :-1])
+#                 l.bias.data.add_(-update[:, -1])
+#             else:
+#                 l.weight.data.add_(-update)
+            l.weight.data.add_(-update)
         self.t += 1
 
     def _add_hooks_to_net(self):

@@ -28,13 +28,10 @@ else:
 batch_size = 500
 num_workers = 5
 
-lambda_ = 0.01
+lambda_ = 0.001
 a =  1.
 b = 100.
 gamma = 0.55
-
-def l2(params):
-    return sum(torch.sum(p ** 2) for p in params)
 
 
 train_loader, test_loader = mnist.get_mnist(batch_size, num_workers)
@@ -47,7 +44,7 @@ criterion = nn.CrossEntropyLoss(size_average=True)
 #optim = sgld_alt.optim.sgld(network, lr, lambda_, lr_decayEpoch, batch_size, dataset_size)
 optim = optim.sgld(network, a, b, gamma, lambda_, batch_size, dataset_size)
 
-for epoch in range(5):
+for epoch in range(10):
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)

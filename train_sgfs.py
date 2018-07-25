@@ -27,23 +27,20 @@ num_workers = 5
 lambda_ = 0.001
 epsilon =  2.
 
-### Change B
-
-#precision = 1.
 
 train_loader, test_loader = mnist.get_mnist(batch_size, num_workers)
 
-train_size = len(train_loader.dataset)
-test_size = len(test_loader.dataset)
+train_size = 60000
+test_size = 10000
 
-#network = model.shallow_network()
+# model_sgfs: preactivation and activation matrices required
 network = model_sgfs.mlp([784,400,400,10])
 criterion = F.binary_cross_entropy_with_logits
 
 
 optim = optim.sgfs(network, epsilon, lambda_, batch_size, train_size)
 
-for epoch in range(1):
+for epoch in range(10):
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)
@@ -53,15 +50,15 @@ for epoch in range(1):
         output, nonLinearities, preactivations = network(x)
         loss = criterion(output, one_hot)
         preactivation_grads = torch.autograd.grad(loss, preactivations)
+        # according to Goodfellow (see optim.py)
+        # https://arxiv.org/pdf/1510.01799.pdf
         optim.element_backward(nonLinearities, preactivation_grads)
         optim.emp_fisher()
-        #loss = criterion(output, y)
-        #loss.backward()
 
 
         optim.step()
         #TO DO: update
-        #running_loss += loss * batch_size / train_size
+        running_loss += loss * batch_size / train_size
         prediction = output.data.max(1)[1]
         accuracy = torch.sum(prediction.eq(y)).float()/batch_size
 

@@ -30,8 +30,8 @@ class KSGFS(object):
         self.n = batch_size
         self.N = dataset_size
         self.gamma = np.float(dataset_size + batch_size) / batch_size
-        self.learning_rate = 2. / (self.gamma  + 4. / epsilon)
-        self.noise_factor = 2. * math.sqrt(1. / (self.N * epsilon))
+        self.learning_rate = 2.  / (self.gamma * (1.  + 4. / epsilon))
+        self.noise_factor = 2. * math.sqrt(1. / epsilon)
 
         self.eta = eta
         self.v = v
@@ -108,7 +108,7 @@ class KSGFS(object):
 
     def step(self, closure=None):
         for l in self.linear_layers:
-            weight_grad = l.weight.grad
+            weight_grad = l.weight.grad * self.N
 
             noise = torch.randn_like(weight_grad)
 
@@ -118,7 +118,7 @@ class KSGFS(object):
             G_ch = torch.potrf(self.preactivation_fishers[l].add_(eps, torch.eye(self.preactivation_fishers[l].size(0))), upper=False)
             noise_precon = G_ch.mm(noise).mm(A_ch)
 
-            weight_grad.add_(self.lambda_ / self.N, l.weight.data).add_(self.noise_factor, noise_precon)
+            weight_grad.add_(self.lambda_ , l.weight.data).add_(self.noise_factor, noise_precon)
 
             A_inv = self.input_covariance_inverses[l]
             G_inv = self.preactivation_fisher_inverses[l]

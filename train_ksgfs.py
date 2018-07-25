@@ -43,11 +43,11 @@ network = model.shallow_network()
 criterion = nn.CrossEntropyLoss(size_average=True)
 
 #optim = sgld_alt.optim.sgld(network, lr, lambda_, lr_decayEpoch, batch_size, dataset_size)
-optim = ksgfs.optim.KSGFS(network, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-3, epsilon=2., l2=1e-3, invert_every=1)
+optim = ksgfs.optim.KSGFS(network, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-3, epsilon=0.001, l2=1e-3, invert_every=1)
 
 losses = []
 
-for epoch in range(10):
+for epoch in range(5):
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)
@@ -77,5 +77,3 @@ for epoch in range(10):
             test_metric += 100 * (output.argmax(1) == y).float().sum() / 10000
 
         print("\ttest: {:.4}".format( test_metric))
-
-print(losses)

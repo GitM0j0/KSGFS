@@ -124,7 +124,7 @@ class KSGLD(object):
             noise_precon = G_inv_ch.mm(noise).mm(A_inv_ch)
 
             eps = self.epsilon * 10 ** -(self.t // 400)
-            learning_rate = eps
+            learning_rate = eps * 0.5
             noise_factor = math.sqrt(eps / self.N)
 
             update = (learning_rate * nat_grad).add(noise_factor, noise_precon)

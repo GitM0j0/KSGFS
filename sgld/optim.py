@@ -28,8 +28,8 @@ class sgld(object):
         learning_rate = self.lr_init * 10 ** -(self.t // 100)
 
         for l in self.linear_layers:
-            weight_grad = (self.N * l.weight.grad).add(self.lambda_, l.weight.data)
-            noise = torch.randn_like(weight_grad) * math.sqrt(learning_rate)
+            weight_grad = l.weight.grad.add(self.lambda_ / self.N, l.weight.data)
+            noise = torch.randn_like(weight_grad) * math.sqrt(learning_rate / self.N)
             update = (learning_rate * 0.5 * weight_grad).add(noise)
             l.weight.data.add_(-update)
         self.t +=1

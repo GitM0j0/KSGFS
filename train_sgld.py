@@ -31,7 +31,7 @@ a =  1.
 b = 1000.
 gamma = 1.
 
-lr = 1e-5
+lr = 1e-1
 
 
 batch_size = 500

@@ -16,7 +16,7 @@ class BackpropMode(Enum):
 
 class KSGFS(object):
 
-    def __init__(self, net, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-3, epsilon=2., l2=1e-3, invert_every=1):
+    def __init__(self, net, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-3, epsilon=1e-3, l2=1e-3, invert_every=1):
         if not isinstance(criterion, (nn.CrossEntropyLoss, nn.BCEWithLogitsLoss, nn.MSELoss)):
             raise ValueError("Unrecognized loss:", criterion.__class__.__name__)
 
@@ -30,8 +30,8 @@ class KSGFS(object):
         self.n = batch_size
         self.N = dataset_size
         self.gamma = np.float(dataset_size + batch_size) / batch_size
-        self.learning_rate = 2.  / (self.gamma * (1.  + 4. / epsilon))
-        self.noise_factor = 2. * math.sqrt(1. / epsilon)
+        self.learning_rate = 2. / (self.gamma * ( 1. + 4. / epsilon))
+        self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
 
         self.eta = eta
         self.v = v
@@ -67,7 +67,7 @@ class KSGFS(object):
 
         l = sum(loss_fun(output, label_sample, reduce=False))
         preact_grads = torch.autograd.grad(l, preacts)
-        scale = p.size(0) ** -0.5
+        scale = p.size(0) ** -1
         for pg, mod in zip(preact_grads, self.linear_layers):
             preact_fisher = pg.t().mm(pg).detach() * scale
             self._update_factor(self.preactivation_fishers, mod, preact_fisher)
@@ -94,7 +94,7 @@ class KSGFS(object):
         if self.mode == BackpropMode.CURVATURE:
             self.preactivations[mod] = output
             inp = inputs[0]
-            scale = output.size(0) ** -0.5
+            scale = output.size(0) ** -1
             if mod.bias is not None:
                 inp = torch.cat((inp, inp.new(inp.size(0), 1).fill_(1)), 1)
             input_cov = inp.t().mm(inp).detach() * scale
@@ -108,17 +108,17 @@ class KSGFS(object):
 
     def step(self, closure=None):
         for l in self.linear_layers:
-            weight_grad = l.weight.grad * self.N
+            weight_grad = l.weight.grad.add((self.lambda_ / self.N) , l.weight.data)
 
             noise = torch.randn_like(weight_grad)
 
             # Small epsilon to stabilise computation of Cholesky factors
-            eps = 1e-5 * 1. ** -(self.t // 5)
-            A_ch = torch.potrf(self.input_covariances[l].add_(eps, torch.eye(self.input_covariances[l].size(1))))
-            G_ch = torch.potrf(self.preactivation_fishers[l].add_(eps, torch.eye(self.preactivation_fishers[l].size(0))), upper=False)
+            eps = 1e-5
+            A_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(noise.size(1))))#, upper=False)
+            G_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(noise.size(0))))
             noise_precon = G_ch.mm(noise).mm(A_ch)
 
-            weight_grad.add_(self.lambda_ , l.weight.data).add_(self.noise_factor, noise_precon)
+            # weight_grad.add_(self.noise_factor, noise_precon)
 
             A_inv = self.input_covariance_inverses[l]
             G_inv = self.preactivation_fisher_inverses[l]

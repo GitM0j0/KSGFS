@@ -23,12 +23,10 @@ else:
 
 
 
-lambda_ = 0.01
-epsilon = 2.
-damping = 1e-3
 
 
-batch_size = 1000
+
+batch_size = 500
 dataset_size=60000
 train_data = torchvision.datasets.MNIST(root=os.environ.get("DATASETS_PATH", "~/datasets"), train=True,
                                          download=True, transform=transforms.ToTensor())
@@ -43,9 +41,9 @@ network = model.shallow_network()
 criterion = nn.CrossEntropyLoss(size_average=True)
 
 #optim = sgld_alt.optim.sgld(network, lr, lambda_, lr_decayEpoch, batch_size, dataset_size)
-optim = ksgfs.optim.KSGFS(network, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-3, epsilon=0.001, l2=1e-3, invert_every=1)
+optim = ksgfs.optim.KSGFS(network, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-3, epsilon=0.1, l2=1e-3, invert_every=1)
 
-losses = []
+losses_ksgfs = []
 
 for epoch in range(5):
     running_loss = 0
@@ -62,7 +60,7 @@ for epoch in range(5):
 
         # TO DO: update
 
-        losses.append(loss)
+        losses_ksgfs.append(loss)
         running_loss += loss * batch_size / dataset_size
         prediction = output.data.max(1)[1]
         accuracy = torch.sum(prediction.eq(y)).float()/batch_size

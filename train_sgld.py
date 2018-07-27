@@ -25,26 +25,38 @@ else:
 
 #lr = 1e-5
 #lr_decayEpoch = 20
-batch_size = 500
-num_workers = 5
 
-lambda_ = 0.001
+lambda_ = 1e-3
 a =  1.
-b = 100.
-gamma = 0.55
+b = 1000.
+gamma = 1.
+
+lr = 1e-5
 
 
-train_loader, test_loader = mnist.get_mnist(batch_size, num_workers)
-dataset_size = 60000
+batch_size = 500
+dataset_size=60000
+train_data = torchvision.datasets.MNIST(root=os.environ.get("DATASETS_PATH", "~/datasets"), train=True,
+                                         download=True, transform=transforms.ToTensor())
+train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, num_workers=5)
+
+test_data = torchvision.datasets.MNIST(root=os.environ.get("DATASETS_PATH", "~/datasets"), train=False,
+                                        download=True, transform=transforms.ToTensor())
+test_loader = torch.utils.data.DataLoader(test_data, batch_size=1000)
 
 
 network = model.shallow_network()
 criterion = nn.CrossEntropyLoss(size_average=True)
 
 #optim = sgld_alt.optim.sgld(network, lr, lambda_, lr_decayEpoch, batch_size, dataset_size)
-optim = optim.sgld(network, a, b, gamma, lambda_, batch_size, dataset_size)
+#optim = optim.sgld(network, a, b, gamma, lambda_, batch_size, dataset_size)
+#optim = optim.sgld(network, lr, lambda_, batch_size, dataset_size)
+#optim = optim.sgld(network.parameters(), lr, lr_decay=0.999, lr_reset_period=0, dataset_size=len(train_loader.dataset))
+optim = optim.sgld(network, lr, lambda_, dataset_size)
 
-for epoch in range(10):
+losses_sgld = []
+
+for epoch in range(2):
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)
@@ -55,6 +67,7 @@ for epoch in range(10):
         loss.backward()
         optim.step()
 
+        losses_sgld.append(loss)
         # TO DO: update
         running_loss += loss * batch_size / dataset_size
         prediction = output.data.max(1)[1]
@@ -69,6 +82,7 @@ for epoch in range(10):
             output = network(x)
             test_metric += 100 * (output.argmax(1) == y).float().sum() / 10000
             prediction = output.data.max(1)[1]
-            accuracy = torch.sum(prediction.eq(y)).float()/1000
 
-        print("\ttest: {:.4}  - acc: {:.4}".format( test_metric, accuracy))
+        print("\ttest: {:.4}".format( test_metric))
+
+print(losses_sgld)

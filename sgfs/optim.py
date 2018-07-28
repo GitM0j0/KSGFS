@@ -24,7 +24,7 @@ class sgfs(object):
         self.I_hat = dict()
         self.grad_mean = dict()
         #self.learning_rate = 2. / (self.gamma + (4. / epsilon))
-        self.noise_factor = 2 * math.sqrt(self.gamma / (epsilon * self.N))
+        self.noise_factor = 2 * math.sqrt(1. / (epsilon * self.N))
 
 
         self.grads_per_element = dict()
@@ -77,7 +77,7 @@ class sgfs(object):
             #     I_hat_inv = torch.eye(self.I_hat[l].size(0))
             # else:
             eps = 1e-8 * 10 ** -(self.t // 10)
-            B = self.gamma * self.I_hat[l]
+            B = self.I_hat[l]
             mat = self.gamma * self.I_hat[l] + 4. * B / self.epsilon
             mat_inv = torch.inverse(mat.add(torch.eye(self.I_hat[l].size(0))))
             #mat_inv = torch.inverse(mat)
@@ -90,7 +90,7 @@ class sgfs(object):
             noise = (self.noise_factor * B_ch).mm(torch.randn_like(self.grad_mean[l]))
 
             # Update in parameter space
-            update = 2. * (mat_inv).mm((self.grad_mean[l]).add_(self.lambda_ / self.N, l.weight.data))#.add_(noise))
+            update = 2. * (mat_inv).mm((self.grad_mean[l]).add_(self.lambda_ / self.N, l.weight.data).add_(noise))
             l.weight.data.add_(-update)
             #print(update)
         self.t += 1

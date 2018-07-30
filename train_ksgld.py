@@ -7,12 +7,9 @@ from torch import nn
 from torchvision import transforms
 import torch.nn.functional as F
 import numpy as np
-#from numpy.random import RandomState
 
 import ksgld
-
 import model
-
 import mnist
 
 
@@ -21,9 +18,18 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
+# Model parameter
+eta = 1.
+v = 0.
+lambda_ = 1e-4
+epsilon = 1e-3
+l2 = 1e-3
+invert_every = 1
+
 
 batch_size = 500
 dataset_size=60000
+
 train_data = torchvision.datasets.MNIST(root=os.environ.get("DATASETS_PATH", "~/datasets"), train=True,
                                          download=True, transform=transforms.ToTensor())
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, num_workers=5)
@@ -37,11 +43,13 @@ network = model.shallow_network()
 criterion = nn.CrossEntropyLoss(size_average=True)
 
 #optim = sgld_alt.optim.sgld(network, lr, lambda_, lr_decayEpoch, batch_size, dataset_size)
-optim = ksgld.optim.KSGLD(network, criterion, batch_size, dataset_size, eta=1., v=0., lambda_=1e-2, epsilon=5e-3, l2=1e-3, invert_every=1)
+optim = ksgld.optim.KSGLD(network, criterion, batch_size, dataset_size, eta, v, lambda_, epsilon, l2, invert_every)
 
 losses_ksgld = []
+testLoss_ksgld = []
 
-for epoch in range(5):
+for epoch in range(100):
+
     running_loss = 0
     for x, y in iter(train_loader):
         x = x.view(x.size(0), -1)
@@ -53,8 +61,6 @@ for epoch in range(5):
         loss = criterion(output, y)
         loss.backward()
         optim.step()
-
-        # TO DO: update
 
         losses_ksgld.append(loss)
         running_loss += loss * batch_size / dataset_size

@@ -30,8 +30,10 @@ class KSGFS(object):
         self.n = batch_size
         self.N = dataset_size
         self.gamma = np.float(dataset_size + batch_size) / batch_size
-        self.learning_rate = 2. / (self.gamma * ( 1. + 4. / epsilon))
-        self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
+        #self.learning_rate = 2. / (self.gamma * ( 1. + 4. / epsilon))
+        self.learning_rate = 2. / (self.gamma + 4. / epsilon)
+        #self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
+        self.noise_factor = 2. * math.sqrt(1. / (epsilon * self.N))
 
         self.eta = eta
         self.v = v
@@ -113,9 +115,9 @@ class KSGFS(object):
             noise = torch.randn_like(weight_grad)
 
             # Small epsilon to stabilise computation of Cholesky factors
-            eps = 1e-5
-            A_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(noise.size(1))))#, upper=False)
-            G_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(noise.size(0))))
+            eps = 1e-3
+            A_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(noise.size(1))))
+            G_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(noise.size(0))), upper=False)
             noise_precon = G_ch.mm(noise).mm(A_ch)
 
             # weight_grad.add_(self.noise_factor, noise_precon)

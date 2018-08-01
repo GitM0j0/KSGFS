@@ -115,15 +115,15 @@ class KSGLD(object):
 
             nat_grad = G_inv.mm(weight_grad).mm(A_inv)
 
-            # eps = 1e-2 * 1. ** (self.t // 5)
-            # A_inv_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(self.input_covariances[l].size(0))))
-            # G_inv_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(self.preactivation_fishers[l].size(0))), upper=False)
-            A_inv_ch = torch.potrf(A_inv)
-            G_inv_ch = torch.potrf(G_inv)#, upper=False)
+            eps = 1e-3 * 1. ** (self.t // 20)
+            A_inv_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(self.input_covariances[l].size(0))))
+            G_inv_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(self.preactivation_fishers[l].size(0))), upper=False)
+            # A_inv_ch = torch.potrf(A_inv)
+            # G_inv_ch = torch.potrf(G_inv)#, upper=False)
 
             noise_precon = G_inv_ch.mm(noise).mm(A_inv_ch)
 
-            eps = self.epsilon * 10 ** -(self.t // 400)
+            eps = self.epsilon * 10 ** -(self.t // 1000000)
             learning_rate = eps * 0.5
             noise_factor = math.sqrt(eps / self.N)
 

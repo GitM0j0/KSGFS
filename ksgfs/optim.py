@@ -30,10 +30,12 @@ class KSGFS(object):
         self.n = batch_size
         self.N = dataset_size
         self.gamma = np.float(dataset_size + batch_size) / batch_size
-        #self.learning_rate = 2. / (self.gamma * ( 1. + 4. / epsilon))
-        self.learning_rate = 2. / (self.gamma + 4. / epsilon)
-        #self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
-        self.noise_factor = 2. * math.sqrt(1. / (epsilon * self.N))
+        self.learning_rate = 2. / (self.gamma * ( 1. + 4. / epsilon))
+        # self.learning_rate = 2. / (self.gamma + 4. / epsilon)
+        # self.learning_rate = 2. / (self.gamma + 4. * self.gamma / epsilon)
+        # self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
+        # self.noise_factor = 2. * math.sqrt(1. / (epsilon * self.N))
+        self.noise_factor = 2. * math.sqrt(self.gamma / epsilon)
 
         self.eta = eta
         self.v = v
@@ -64,6 +66,16 @@ class KSGFS(object):
             p = F.softmax(output, 1).detach()
             label_sample = torch.multinomial(p, 1, out=p.new(p.size(0)).long()).squeeze()
             loss_fun = F.cross_entropy
+        elif isinstance(self.criterion, nn.MSELoss):
+            p = output.detach()
+            label_sample = torch.normal(p, 1.)
+            loss_fun = lambda x, y, **kwargs: 0.5 * F.mse_loss(x, y, **kwargs).sum(1)
+        elif isinstance(self.criterion, nn.BCEWithLogitsLoss):
+            p = output.detach()
+#            label_sample = torch.bernoulli(p, out=p.new(p.size()))
+            p = F.sigmoid(p)
+            label_sample = torch.bernoulli(p)
+            loss_fun = lambda x, y, **kwargs: F.binary_cross_entropy_with_logits(x, y, **kwargs).sum(1)
         else:
             raise NotImplemented
 
@@ -110,23 +122,37 @@ class KSGFS(object):
 
     def step(self, closure=None):
         for l in self.linear_layers:
-            weight_grad = l.weight.grad.add((self.lambda_ / self.N) , l.weight.data)
+            likelihood_grad = l.weight.grad
+            prior_grad = l.weight.data
+            if l.bias is not None:
+                bias_grad = l.bias.grad
+                likelihood_grad = torch.cat((likelihood_grad, bias_grad.unsqueeze(1)), 1)
+                prior_grad = torch.cat((l.weight.data, l.bias.data.unsqueeze(1)), 1)
 
-            noise = torch.randn_like(weight_grad)
+            likelihood_grad *= float(self.N) / self.n
+
+            # posterior_grad = likelihood_grad.add((self.lambda_ / self.N) , prior_grad)
+            posterior_grad = likelihood_grad.add((self.lambda_) , prior_grad)
+
+            noise = torch.randn_like(posterior_grad)
 
             # Small epsilon to stabilise computation of Cholesky factors
-            eps = 1e-3
+            eps = 1e-5
             A_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(noise.size(1))))
             G_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(noise.size(0))), upper=False)
             noise_precon = G_ch.mm(noise).mm(A_ch)
 
-            # weight_grad.add_(self.noise_factor, noise_precon)
+            posterior_grad.add_(self.noise_factor, noise_precon)
 
             A_inv = self.input_covariance_inverses[l]
             G_inv = self.preactivation_fisher_inverses[l]
-            update = self.learning_rate * G_inv.mm(weight_grad).mm(A_inv)
+            update = self.learning_rate * G_inv.mm(posterior_grad).mm(A_inv)
 
-            l.weight.data.add_(-update)
+            if l.bias is not None:
+                l.weight.data.add_(-1, update[:, :-1])
+                l.bias.data.add_(-1, update[:, -1])
+            else:
+                l.weight.data.add_(-1, update)
         self.t += 1
 
     def _add_hooks_to_net(self):

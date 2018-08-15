@@ -60,6 +60,17 @@ class KSGLD(object):
             p = F.softmax(output, 1).detach()
             label_sample = torch.multinomial(p, 1, out=p.new(p.size(0)).long()).squeeze()
             loss_fun = F.cross_entropy
+        elif isinstance(self.criterion, nn.MSELoss):
+            p = output.detach()
+            # label_sample = torch.bernoulli(p, out=p.new(p.size()))
+            label_sample = torch.normal(p, 1.)
+            loss_fun = lambda x, y, **kwargs: 0.5 * F.mse_loss(x, y, **kwargs).sum(1)
+        elif isinstance(self.criterion, nn.BCEWithLogitsLoss):
+            p = output.detach()
+#            label_sample = torch.bernoulli(p, out=p.new(p.size()))
+            p = F.sigmoid(p)
+            label_sample = torch.bernoulli(p)
+            loss_fun = lambda x, y, **kwargs: F.binary_cross_entropy_with_logits(x, y, **kwargs).sum(1)
         else:
             raise NotImplemented
 
@@ -106,16 +117,26 @@ class KSGLD(object):
 
     def step(self, closure=None):
         for l in self.linear_layers:
-            weight_grad = l.weight.grad.add(self.lambda_ / self.N, l.weight.data)
+            likelihood_grad = l.weight.grad
+            prior_grad = l.weight.data
+            if l.bias is not None:
+                bias_grad = l.bias.grad
+                likelihood_grad = torch.cat((likelihood_grad, bias_grad.unsqueeze(1)), 1)
+                prior_grad = torch.cat((l.weight.data, l.bias.data.unsqueeze(1)), 1)
 
-            noise = torch.randn_like(weight_grad)
+            likelihood_grad *= float(self.N) / self.n
+
+            # posterior_grad = likelihood_grad.add((self.lambda_ / self.N) , prior_grad)
+            posterior_grad = likelihood_grad.add((self.lambda_), prior_grad)
+
+            noise = torch.randn_like(posterior_grad)
 
             A_inv = self.input_covariance_inverses[l]
             G_inv = self.preactivation_fisher_inverses[l]
 
-            nat_grad = G_inv.mm(weight_grad).mm(A_inv)
+            nat_grad = G_inv.mm(posterior_grad).mm(A_inv)
 
-            eps = 1e-3 * 1. ** (self.t // 20)
+            eps = 1e-4 #* 10 ** -(self.t // 5000)
             A_inv_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(self.input_covariances[l].size(0))))
             G_inv_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(self.preactivation_fishers[l].size(0))), upper=False)
             # A_inv_ch = torch.potrf(A_inv)
@@ -123,13 +144,18 @@ class KSGLD(object):
 
             noise_precon = G_inv_ch.mm(noise).mm(A_inv_ch)
 
-            eps = self.epsilon * 10 ** -(self.t // 1000000)
+            eps = self.epsilon * 0.5 ** (self.t // 50000)
             learning_rate = eps * 0.5
-            noise_factor = math.sqrt(eps / self.N)
+            # noise_factor = math.sqrt(eps / self.N)
+            noise_factor = math.sqrt(eps)
 
-            update = (learning_rate * nat_grad).add(noise_factor, noise_precon)
+            update = (learning_rate *  nat_grad).add(noise_factor, noise_precon)
 
-            l.weight.data.add_(-update)
+            if l.bias is not None:
+                l.weight.data.add_(-1, update[:, :-1])
+                l.bias.data.add_(-1, update[:, -1])
+            else:
+                l.weight.data.add_(-1, update)
         self.t += 1
 
     def _add_hooks_to_net(self):

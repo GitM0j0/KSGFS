@@ -26,10 +26,6 @@ class psgld(object):
 
         self.square_avg = dict()
 
-
-
-
-
     def step(self,):
         #learning_rate = self.lr_init * 10 ** -(self.t // 1000)
         learning_rate = self.lr_init * 10 ** -(self.t // 50000)
@@ -41,7 +37,7 @@ class psgld(object):
                 likelihood_grad = torch.cat((likelihood_grad, l.bias.grad.unsqueeze(1)), 1)
                 prior_grad = torch.cat((prior_grad, l.bias.data.unsqueeze(1)), 1)
 
-            likelihood_grad *= float(self.N) / self.n
+            likelihood_grad *= self.N
 
             # posterior_grad = (likelihood_grad).add(self.lambda_ / self.N , prior_grad)
             posterior_grad = likelihood_grad.add(self.lambda_, prior_grad)

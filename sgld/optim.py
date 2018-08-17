@@ -39,7 +39,7 @@ class sgld(object):
                 likelihood_grad = torch.cat((likelihood_grad, bias_grad.unsqueeze(1)), 1)
                 prior_grad = torch.cat((prior_grad, l.bias.data.unsqueeze(1)), 1)
 
-            likelihood_grad *= (float(self.N) / self.n)
+            likelihood_grad *= self.N
 
 
             # posterior_grad = likelihood_grad.add(self.lambda_ / self.N , prior_grad)

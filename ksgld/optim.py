@@ -127,7 +127,7 @@ class KSGLD(object):
             likelihood_grad *= float(self.N) / self.n
 
             # posterior_grad = likelihood_grad.add((self.lambda_ / self.N) , prior_grad)
-            posterior_grad = likelihood_grad.add((self.lambda_), prior_grad)
+            posterior_grad = likelihood_grad.add(self.lambda_, prior_grad)
 
             noise = torch.randn_like(posterior_grad)
 
@@ -145,7 +145,7 @@ class KSGLD(object):
             noise_precon = G_inv_ch.mm(noise).mm(A_inv_ch)
 
             eps = self.epsilon * 0.5 ** (self.t // 50000)
-            learning_rate = eps * 0.5
+            learning_rate = eps #* 0.5
             # noise_factor = math.sqrt(eps / self.N)
             noise_factor = math.sqrt(eps)
 

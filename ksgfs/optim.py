@@ -30,7 +30,7 @@ class KSGFS(object):
         self.n = batch_size
         self.N = dataset_size
         self.gamma = np.float(dataset_size + batch_size) / batch_size
-        self.learning_rate = 2. / (self.gamma * ( 1. + 4. / epsilon))
+        self.learning_rate = 2. / (self.gamma * (1. + 4. / epsilon))
         # self.learning_rate = 2. / (self.gamma + 4. / epsilon)
         # self.learning_rate = 2. / (self.gamma + 4. * self.gamma / epsilon)
         # self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
@@ -132,7 +132,7 @@ class KSGFS(object):
             likelihood_grad *= float(self.N) / self.n
 
             # posterior_grad = likelihood_grad.add((self.lambda_ / self.N) , prior_grad)
-            posterior_grad = likelihood_grad.add((self.lambda_) , prior_grad)
+            posterior_grad = likelihood_grad.add(self.lambda_ , prior_grad)
 
             noise = torch.randn_like(posterior_grad)
 

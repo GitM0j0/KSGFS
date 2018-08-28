@@ -29,13 +29,15 @@ class KSGFS(object):
 
         self.n = batch_size
         self.N = dataset_size
-        self.gamma = np.float(dataset_size + batch_size) / batch_size
-        self.learning_rate = 2. / (self.gamma * (1. + 4. / epsilon))
-        # self.learning_rate = 2. / (self.gamma + 4. / epsilon)
-        # self.learning_rate = 2. / (self.gamma + 4. * self.gamma / epsilon)
+        self.gamma = float(dataset_size + batch_size) / batch_size
+        # self.learning_rate = 2. / (self.gamma * (float(self.N)/self.n + 4. / (self.n *epsilon)))
+        # self.learning_rate = 2. / (self.gamma * (float(self.N) / self.n + 4. / (self.n * epsilon)))
+        self.learning_rate = 2. / (self.gamma * (float(self.N) / self.n  + 4. / (self.n * epsilon)))
         # self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
         # self.noise_factor = 2. * math.sqrt(1. / (epsilon * self.N))
-        self.noise_factor = 2. * math.sqrt(self.gamma / epsilon)
+        # self.noise_factor = 2. * math.sqrt(self.gamma / (self.n * epsilon))
+        # self.noise_factor = 2. * math.sqrt((self.gamma * float(self.N) / self.n) / epsilon) 
+        self.noise_factor = 2. * math.sqrt(self.gamma / (self.n * epsilon))
 
         self.eta = eta
         self.v = v

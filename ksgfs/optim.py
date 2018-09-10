@@ -30,13 +30,16 @@ class KSGFS(object):
         self.n = batch_size
         self.N = dataset_size
         self.gamma = float(dataset_size + batch_size) / batch_size
-        # self.learning_rate = 2. / (self.gamma * (float(self.N)/self.n + 4. / (self.n *epsilon)))
+        self.learning_rate = 2. / (self.gamma * (1. + 4. / epsilon))
         # self.learning_rate = 2. / (self.gamma * (float(self.N) / self.n + 4. / (self.n * epsilon)))
+        
         self.learning_rate = 2. / (self.gamma * (float(self.N) / self.n  + 4. / (self.n * epsilon)))
+        
         # self.noise_factor = 2. * math.sqrt(self.gamma / (epsilon * self.N))
         # self.noise_factor = 2. * math.sqrt(1. / (epsilon * self.N))
-        # self.noise_factor = 2. * math.sqrt(self.gamma / (self.n * epsilon))
+        #self.noise_factor = 2. * math.sqrt(self.gamma / (self.N * epsilon))
         # self.noise_factor = 2. * math.sqrt((self.gamma * float(self.N) / self.n) / epsilon) 
+        
         self.noise_factor = 2. * math.sqrt(self.gamma / (self.n * epsilon))
 
         self.eta = eta
@@ -133,12 +136,13 @@ class KSGFS(object):
 
             likelihood_grad *= float(self.N) / self.n
 
-            # posterior_grad = likelihood_grad.add((self.lambda_ / self.N) , prior_grad)
+            #posterior_grad = likelihood_grad.add((self.lambda_ / self.N) , prior_grad)
             posterior_grad = likelihood_grad.add(self.lambda_ , prior_grad)
 
             noise = torch.randn_like(posterior_grad)
 
             # Small epsilon to stabilise computation of Cholesky factors
+			# Boston Housing, MINST: eps = 1e-5
             eps = 1e-5
             A_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(noise.size(1))))
             G_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(noise.size(0))), upper=False)

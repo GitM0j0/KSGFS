@@ -140,7 +140,7 @@ class KSGLD(object):
             #A_inv_ch = torch.potrf(self.input_covariances[l].add(eps, torch.eye(self.input_covariances[l].size(0))))
             #G_inv_ch = torch.potrf(self.preactivation_fishers[l].add(eps, torch.eye(self.preactivation_fishers[l].size(0))), upper=False)
             A_inv_ch = torch.potrf(A_inv)
-            G_inv_ch = torch.potrf(G_inv)#, upper=False)
+            G_inv_ch = torch.potrf(G_inv, upper=False)
 
             noise_precon = G_inv_ch.mm(noise).mm(A_inv_ch)
 
